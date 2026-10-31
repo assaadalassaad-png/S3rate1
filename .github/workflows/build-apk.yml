@@ -1,51 +1,1413 @@
-aname: Build s3rate APK
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تطبيق السعرات - شام كاش</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+--bg-color: #f0f4f9;
+--card-bg: #ffffff;
+--primary-blue: #2563eb;
+--text-main: #1e293b;
+--text-sub: #64748b;
+--green-in: #10b981;
+--red-out: #ef4444;
+--orange-btn: #f59e0b;
+--purple-reports: #8b5cf6;
+--radius-lg: 20px;
+--radius-md: 14px;
+}
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ "main", "master" ]
+* { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 0; user-select: none; }
+body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding-bottom: 95px; }
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get source code
-        uses: actions/checkout@v4
+.app-screen { width: 100%; max-width: 430px; padding: 12px; position: relative; }
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+.top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.icon-btn { width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; color: var(--text-main); font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
+.toggle-pill { display: flex; background: #e2e8f0; border-radius: 25px; padding: 3px; width: 180px; }
+.toggle-opt { flex: 1; text-align: center; padding: 6px 0; font-size: 14px; font-weight: 700; border-radius: 20px; cursor: pointer; color: var(--text-sub); border: none; background: transparent; }
+.toggle-opt.active { background: var(--primary-blue); color: white; box-shadow: 0 2px 6px rgba(37,99,235,0.2); }
 
-      - name: Install dependencies
-        run: npm install
+.page-view { display: none; }
+.page-view.active { display: block; animation: fadeIn 0.2s ease-in-out; }
 
-      - name: Copy your index.html into the app
-        run: npm run copy-web
+.card { background: var(--card-bg); border-radius: var(--radius-lg); padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 12px; }
+.card-title { font-size: 13px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.card-value { font-size: 32px; font-weight: 800; color: var(--text-main); }
 
-      - name: Add Android platform
-        run: npx cap add android
+.action-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.action-btn-card { flex: 1; background: var(--card-bg); border-radius: var(--radius-md); padding: 12px 6px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+.action-btn-card.in { color: var(--green-in); }
+.action-btn-card.out { color: var(--red-out); }
+.action-btn-card.surplus { color: var(--orange-btn); background: #fffbeb; border: 1px solid #fde68a; }
 
-      - name: Sync Android project
-        run: npx cap sync android
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; text-align: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; text-align: center; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; text-align: center; }
 
-      - name: Build installable APK
-        working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+.box-item { background: var(--card-bg); border-radius: var(--radius-md); padding: 10px 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+.box-title { font-size: 11px; color: var(--text-sub); font-weight: 600; margin-bottom: 4px; }
+.box-val { font-size: 14px; font-weight: 800; }
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: s3rate-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
+.cat-box { background: var(--card-bg); border-radius: var(--radius-md); padding: 12px 6px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02); cursor: pointer; }
+.cat-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; margin-bottom: 6px; }
+.cat-title { font-size: 11px; font-weight: 700; color: var(--text-main); }
+
+.input-box { margin-bottom: 10px; }
+.input-box label { display: block; font-size: 11px; color: var(--text-sub); margin-bottom: 4px; font-weight: 600; }
+.input-box input, .input-box select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; font-size: 13px; outline: none; }
+.btn-main { width: 100%; padding: 11px; background: var(--primary-blue); color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; margin-top: 4px; }
+
+.btn-action-sm { border: none; padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 11px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.btn-warning-custom { background: var(--orange-btn); }
+.btn-danger-custom { background: var(--red-out); }
+
+.btn-add-inline { background: #eff6ff; color: var(--primary-blue); border: 1px dashed var(--primary-blue); width: 100%; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-add-inline.red { background: #fef2f2; color: var(--red-out); border-color: var(--red-out); }
+
+.btn-edit { background: #fef3c7; color: #b45309; }
+.btn-delete { background: #fee2e2; color: #b91c1c; }
+
+.food-list { max-height: 150px; overflow-y: auto; background: #f8fafc; border-radius: 8px; padding: 6px; border: 1px solid #e2e8f0; margin-bottom: 8px; }
+.food-item { padding: 6px; border-bottom: 1px solid #e2e8f0; font-size: 12px; display: flex; justify-content: space-between; cursor: pointer; }
+.food-item:hover { background: #e2e8f0; }
+
+.modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: white; border-radius: var(--radius-lg); width: 100%; max-width: 410px; padding: 18px; position: relative; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.2s; }
+
+.tx-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.btn-new-tx { background: #eff6ff; color: var(--primary-blue); border: 1px solid #bfdbfe; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.tx-card { background: white; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; }
+.tx-info h4 { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+.tx-info p { font-size: 11px; color: var(--text-sub); }
+.tx-amount-side { text-align: left; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.tx-amount { font-size: 15px; font-weight: 800; }
+.tx-actions-row { display: flex; gap: 4px; }
+
+.weight-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; text-align: center; }
+.weight-table th { background: #f8fafc; color: var(--text-sub); padding: 8px; border-bottom: 1px solid #e2e8f0; }
+.weight-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+
+.chart-container { margin-top: 12px; }
+.chart-bar-wrap { margin-bottom: 8px; }
+.chart-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; margin-bottom: 3px; color: var(--text-sub); }
+.chart-track { background: #e2e8f0; border-radius: 10px; height: 10px; width: 100%; overflow: hidden; }
+.chart-fill { height: 100%; border-radius: 10px; transition: width 0.4s ease; }
+
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; height: 75px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #e2e8f0; max-width: 430px; margin: 0 auto; padding: 0 6px; z-index: 100; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -4px 15px rgba(0,0,0,0.04); }
+.nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 4px; border-radius: 12px; color: white; font-size: 10px; font-weight: 700; gap: 3px; cursor: pointer; border: none; width: 52px; height: 50px; }
+.nav-btn.debts { background: var(--orange-btn); }
+.nav-btn.exp { background: var(--red-out); }
+.nav-btn.inc { background: var(--green-in); }
+.nav-btn.txs { background: #0891b2; }
+.nav-btn.rep { background: var(--purple-reports); }
+.nav-btn.hom { background: var(--primary-blue); }
+.nav-btn i { font-size: 14px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="app-screen">
+
+<div class="top-header">
+<button class="icon-btn" onclick="switchMainPage('rep')"><i class="fa-solid fa-chart-pie"></i></button>
+<div class="toggle-pill">
+<button class="toggle-opt active" id="btn-switch-cal" onclick="switchMainPage('cal')">السعرات</button>
+<button class="toggle-opt" id="btn-switch-wt" onclick="switchMainPage('wt')">الوزن</button>
+</div>
+<button class="icon-btn" style="color:var(--orange-btn);" onclick="switchMainPage('txs')"><i class="fa-solid fa-list-check"></i></button>
+</div>
+
+<!-- PAGE 1: CALORIES -->
+<div class="page-view active" id="page-calories">
+
+<div class="card" style="text-align: center;">
+<div class="card-title" style="justify-content: center;"><span>رصيد السعرات المستهدف للتصفير</span> <i class="fa-regular fa-eye"></i></div>
+<div class="card-value"><span id="main-cal-val">77,500</span> <span style="font-size:16px;">سعرة</span></div>
+<div style="font-size: 11px; color: var(--text-sub); margin-top: 4px;">المدخول يرفع الرصيد • المصروف والاحتياج يخفضانه</div>
+</div>
+
+<!-- Surplus Card -->
+<div class="card" style="background:#fefce8; border:1px solid #fde047; text-align:center;">
+<div class="card-title" style="justify-content: center; color:#854d0e;"><i class="fa-solid fa-bolt"></i> بطاقة الفائض (أقل من الاحتياج 1500)</div>
+<div class="card-value" style="color:#a16207; font-size:26px;" id="surplus-val">1,500 <span style="font-size:14px;">سعرة</span></div>
+<div style="font-size: 10px; color: #a16207; margin-top:2px;">= 1500 ناقص المدخول الحالي (مؤشر مستقل لا يؤثر بالحسابات)</div>
+</div>
+
+<div class="action-row">
+<button class="action-btn-card in" onclick="openActionForm('income')"><i class="fa-solid fa-caret-up"></i> مدخول (أكل)</button>
+<button class="action-btn-card out" onclick="openActionForm('expense')"><i class="fa-solid fa-caret-down"></i> مصروف (رياضة)</button>
+<button class="action-btn-card surplus" onclick="openActionForm('surplus_details')"><i class="fa-solid fa-bolt"></i> فائض</button>
+</div>
+
+<!-- Macros Total Row -->
+<div class="grid-3" style="margin-bottom:4px;">
+<div class="box-item"><div class="box-title">بروتين</div><div class="box-val" style="color:var(--primary-blue);" id="m-p">0.0 غ</div></div>
+<div class="box-item"><div class="box-title">كربوهيدرات</div><div class="box-val" style="color:var(--orange-btn);" id="m-c">0.0 غ</div></div>
+<div class="box-item"><div class="box-title">دهون</div><div class="box-val" style="color:var(--red-out);" id="m-f">0.0 غ</div></div>
+</div>
+
+<!-- Macros Remaining Row -->
+<div class="grid-3">
+<div class="box-item" style="background:#eff6ff; border:1px solid #bfdbfe;">
+<div class="box-title" style="color:#1d4ed8;">متبقي البروتين</div>
+<div class="box-val" style="color:#1e40af;" id="m-p-rem">166.0 غ</div>
+</div>
+<div class="box-item" style="background:#fffbeb; border:1px solid #fde68a;">
+<div class="box-title" style="color:#b45309;">متبقي الكربو</div>
+<div class="box-val" style="color:#92400e;" id="m-c-rem">200.0 غ</div>
+</div>
+<div class="box-item" style="background:#fef2f2; border:1px solid #fecaca;">
+<div class="box-title" style="color:#b91c1c;">متبقي الدهون</div>
+<div class="box-val" style="color:#991b1b;" id="m-f-rem">60.0 غ</div>
+</div>
+</div>
+
+<div class="grid-2">
+<div class="box-item">
+<div class="box-title" style="color:var(--green-in);"><i class="fa-solid fa-circle-arrow-up"></i> إجمالي المدخول (أكل)</div>
+<div class="box-val" style="color:var(--green-in);" id="total-inc">0</div>
+</div>
+<div class="box-item">
+<div class="box-title" style="color:var(--red-out);"><i class="fa-solid fa-circle-arrow-down"></i> إجمالي المصروف (رياضة)</div>
+<div class="box-val" style="color:var(--red-out);" id="total-exp">0</div>
+</div>
+</div>
+
+<div class="grid-4">
+<div class="cat-box" onclick="openActionForm('add_food')">
+<div class="cat-circle" style="background:var(--primary-blue);"><i class="fa-solid fa-plus-circle"></i></div>
+<div class="cat-title">إضافة طعام</div>
+</div>
+<div class="cat-box" onclick="openActionForm('balance')">
+<div class="cat-circle" style="background:var(--orange-btn);"><i class="fa-solid fa-pen-to-square"></i></div>
+<div class="cat-title">تعديل رصيد</div>
+</div>
+<div class="cat-box" onclick="openActionForm('income')">
+<div class="cat-circle" style="background:var(--green-in);"><i class="fa-solid fa-utensils"></i></div>
+<div class="cat-title">إضافة أكل</div>
+</div>
+<div class="cat-box" onclick="openActionForm('expense')">
+<div class="cat-circle" style="background:var(--red-out);"><i class="fa-solid fa-person-biking"></i></div>
+<div class="cat-title">إضافة رياضة</div>
+</div>
+</div>
+
+</div>
+
+<!-- PAGE 2: TRANSACTIONS -->
+<div class="page-view" id="page-transactions">
+<div class="tx-header-row">
+<div style="font-weight: 800; font-size: 15px; display:flex; align-items:center; gap:6px;">
+<i class="fa-solid fa-receipt" style="color:var(--primary-blue);"></i> سجل العمليات بالتاريخ والساعة
+</div>
+<button class="btn-new-tx" onclick="openActionForm('income')"><i class="fa-solid fa-plus"></i> جديد</button>
+</div>
+
+<div id="transactions-list-container">
+<div style="text-align: center; color: var(--text-sub); padding: 30px; font-size: 13px; background:white; border-radius:14px;">لا توجد عمليات مسجلة حتى الآن</div>
+</div>
+</div>
+
+<!-- PAGE 3: WEIGHT -->
+<div class="page-view" id="page-weight">
+<div class="card" style="text-align: center;">
+<div class="card-title" style="justify-content: center;">وزنك الحالي (رصيد الوزن)</div>
+<div class="card-value"><span id="wt-current">140.0</span> <span style="font-size:16px;">كغ</span></div>
+<div style="margin-top:10px;">
+<input type="number" id="wt-input-new" placeholder="أدخل وزنك اليومي" style="padding:8px; width:65%; border-radius:8px; border:1px solid #cbd5e1;">
+<button onclick="updateWeightData()" style="padding:8px 12px; background:var(--primary-blue); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">تحديث الوزن</button>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title"><span>سجل الوزن اليومي والمقارنات</span></div>
+<div style="max-height: 180px; overflow-y: auto;">
+<table class="weight-table">
+<thead>
+<tr>
+<th>التاريخ</th>
+<th>الوزن</th>
+<th>الفرق</th>
+<th>المجموع</th>
+<th>تحكم</th>
+</tr>
+</thead>
+<tbody id="weight-log-tbody">
+<tr><td colspan="5" style="color:var(--text-sub);">لا يوجد سجلات وزن بعد</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title"><span>إعدادات وهدف الوزن</span></div>
+<div class="grid-2">
+<div class="input-box"><label>الوزن الهدف (كغ)</label><input type="number" id="wt-target" value="90" oninput="calcWeightFormulas()"></div>
+<div class="input-box"><label>العمر</label><input type="number" id="wt-age" value="25" oninput="calcWeightFormulas()"></div>
+</div>
+<div class="grid-2">
+<div class="input-box"><label>الطول (سم)</label><input type="number" id="wt-height" value="170" oninput="calcWeightFormulas()"></div>
+<div class="input-box">
+<label>النشاط</label>
+<select id="wt-activity" onchange="calcWeightFormulas()">
+<option value="1.2">خامل</option>
+<option value="1.375">خفيف</option>
+<option value="1.55" selected>متوسط</option>
+<option value="1.725">عالي</option>
+</select>
+</div>
+</div>
+</div>
+
+<div class="grid-2">
+<div class="box-item"><div class="box-title">مؤشر كتلة الجسم (BMI)</div><div class="box-val" id="res-bmi" style="color:var(--primary-blue);">--</div></div>
+<div class="box-item"><div class="box-title">الأيض الأساسي (BMR)</div><div class="box-val" id="res-bmr" style="color:var(--green-in);">-- سعرة</div></div>
+</div>
+
+<div class="grid-2">
+<div class="box-item"><div class="box-title">الاحتياج اليومي (TDEE)</div><div class="box-val" id="res-tdee" style="color:var(--orange-btn);">-- سعرة</div></div>
+<div class="box-item"><div class="box-title">سعرات الوزن الكلية ()</div><div class="box-val" id="res-tot-cal" style="color:var(--red-out);">-- سعرة</div></div>
+</div>
+
+<div class="card" style="text-align:center; background:#eff6ff; border:1px solid #bfdbfe;">
+<div class="box-title" style="font-size:12px; color:#1e40af;">الأسابيع المتبقية (بمعدل 1.5 كغ أسبوعياً)</div>
+<div style="font-size:22px; font-weight:800; color:#2563eb; margin-top:4px;" id="res-weeks">-- أسبوع</div>
+</div>
+</div>
+
+<!-- PAGE 4: REPORTS -->
+<div class="page-view" id="page-reports">
+<div class="card">
+<div class="card-title" style="justify-content: space-between; align-items: center; margin-bottom:10px;">
+<span><i class="fa-solid fa-chart-pie" style="color:var(--purple-reports);"></i> التقارير والتحليلات الشاملة</span>
+<select id="report-filter" onchange="onReportFilterChange()" style="padding:4px 8px; border-radius:8px; border:1px solid #cbd5e1; font-size:11px; outline:none;">
+<option value="all">كل الأوقات</option>
+<option value="day">تحديد يوم محدد</option>
+<option value="month">تحديد شهر محدد</option>
+<option value="year">تحديد سنة محددة</option>
+</select>
+</div>
+
+<div id="time-picker-container" style="margin-bottom: 10px; display: none;"></div>
+
+<div class="grid-2" style="margin-top:10px;">
+<div class="box-item">
+<div class="box-title">إجمالي المدخول (أكل)</div>
+<div class="box-val" style="color:var(--green-in);" id="rep-inc">0 سعرة</div>
+</div>
+<div class="box-item">
+<div class="box-title">إجمالي المصروف (رياضة)</div>
+<div class="box-val" style="color:var(--red-out);" id="rep-exp">0 سعرة</div>
+</div>
+</div>
+
+<div class="grid-2">
+<div class="box-item" style="background:#f8fafc; padding:12px;">
+<div class="box-title">صافي السعرات (مدخول - مصروف)</div>
+<div class="box-val" style="font-size:16px; color:var(--primary-blue); margin-top:4px;" id="rep-net">0 سعرة</div>
+</div>
+<div class="box-item" style="background:#fffbeb; padding:12px;">
+<div class="box-title">سجل الوزن (الفترة المحددة)</div>
+<div class="box-val" style="font-size:16px; color:var(--orange-btn); margin-top:4px;" id="rep-wt-diff">0 كغ</div>
+</div>
+</div>
+
+<div class="chart-container">
+<div class="card-title" style="margin-bottom:8px;">مقارنة الأداء الرسومية (الشارتات)</div>
+
+<div class="chart-bar-wrap">
+<div class="chart-label"><span>المدخول (أكل)</span><span id="chart-inc-lbl">0%</span></div>
+<div class="chart-track"><div class="chart-fill" id="chart-inc-fill" style="width:0%; background:var(--green-in);"></div></div>
+</div>
+
+<div class="chart-bar-wrap">
+<div class="chart-label"><span>المصروف (رياضة)</span><span id="chart-exp-lbl">0%</span></div>
+<div class="chart-track"><div class="chart-fill" id="chart-exp-fill" style="width:0%; background:var(--red-out);"></div></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+<button class="nav-btn debts" onclick="openActionForm('balance')"><i class="fa-solid fa-wallet"></i>رصيد</button>
+<button class="nav-btn inc" onclick="openActionForm('income')"><i class="fa-solid fa-plus"></i>مدخول</button>
+<button class="nav-btn exp" onclick="openActionForm('expense')"><i class="fa-solid fa-minus"></i>مصروف</button>
+<button class="nav-btn txs" onclick="switchMainPage('txs')"><i class="fa-solid fa-list-check"></i>العمليات</button>
+<button class="nav-btn rep" onclick="switchMainPage('rep')"><i class="fa-solid fa-chart-pie"></i>التقارير</button>
+<button class="nav-btn hom" onclick="switchMainPage('cal')"><i class="fa-solid fa-house"></i>الرئيسية</button>
+</div>
+
+</div>
+
+<!-- Modal Popup Layer -->
+<div class="modal-overlay" id="form-modal">
+<div class="modal-content" id="modal-body"></div>
+</div>
+
+<script>
+let foodsDB = [
+{ name: "خيار", cal: 15, p: 0.7, c: 3.6, f: 0.1 },
+{ name: "بندورة", cal: 18, p: 0.9, c: 3.9, f: 0.2 },
+{ name: "خس", cal: 15, p: 1.4, c: 2.9, f: 0.2 },
+{ name: "ملفوف", cal: 25, p: 1.3, c: 5.8, f: 0.1 },
+{ name: "زهرة", cal: 25, p: 1.9, c: 5, f: 0.3 },
+{ name: "بروكلي", cal: 34, p: 2.8, c: 6.6, f: 0.4 },
+{ name: "بطاطا", cal: 77, p: 2, c: 17, f: 0.1 },
+{ name: "بطاطا مسلوقة", cal: 87, p: 1.9, c: 20.1, f: 0.1 },
+{ name: "باذنجان", cal: 25, p: 1, c: 6, f: 0.2 },
+{ name: "كوسا", cal: 17, p: 1.2, c: 3.1, f: 0.3 },
+{ name: "فليفلة", cal: 31, p: 1, c: 6, f: 0.3 },
+{ name: "بصل", cal: 40, p: 1.1, c: 9.3, f: 0.1 },
+{ name: "ثوم", cal: 149, p: 6.4, c: 33, f: 0.5 },
+{ name: "جزر", cal: 41, p: 0.9, c: 9.6, f: 0.2 },
+{ name: "تفاح", cal: 52, p: 0.3, c: 14, f: 0.2 },
+{ name: "موز", cal: 89, p: 1.1, c: 23, f: 0.3 },
+{ name: "برتقال", cal: 47, p: 0.9, c: 11.8, f: 0.1 },
+{ name: "عنب", cal: 69, p: 0.7, c: 18, f: 0.2 },
+{ name: "بطيخ", cal: 30, p: 0.6, c: 7.6, f: 0.2 },
+{ name: "خوخ", cal: 39, p: 0.9, c: 9.5, f: 0.3 },
+{ name: "رز مطبوخ", cal: 130, p: 2.7, c: 28, f: 0.3 },
+{ name: "برغل مطبوخ", cal: 83, p: 3.1, c: 18.6, f: 0.2 },
+{ name: "فريكة مطبوخة", cal: 120, p: 4, c: 24, f: 1 },
+{ name: "خبز عربي", cal: 275, p: 9, c: 55, f: 1.2 },
+{ name: "خبز أبيض", cal: 265, p: 9, c: 49, f: 3.2 },
+{ name: "شوفان", cal: 389, p: 16.9, c: 66, f: 6.9 },
+{ name: "عدس مطبوخ", cal: 116, p: 9, c: 20, f: 0.4 },
+{ name: "حمص مطبوخ", cal: 164, p: 8.9, c: 27.4, f: 2.6 },
+{ name: "فول مطبوخ", cal: 110, p: 7.6, c: 19.7, f: 0.4 },
+{ name: "فاصولياء مطبوخة", cal: 127, p: 8.7, c: 23.7, f: 0.5 },
+{ name: "صدر دجاج", cal: 165, p: 31, c: 0, f: 3.6 },
+{ name: "فخذ دجاج", cal: 209, p: 26, c: 0, f: 11 },
+{ name: "لحم بقري قليل الدهن", cal: 217, p: 26, c: 0, f: 12 },
+{ name: "تونة بالماء", cal: 116, p: 26, c: 0, f: 1 },
+{ name: "لبنة", cal: 190, p: 10, c: 6, f: 15 },
+{ name: "لبن", cal: 61, p: 3.5, c: 4.7, f: 3.3 },
+{ name: "جبنة بيضاء", cal: 264, p: 14, c: 4, f: 21 },
+{ name: "زيت زيتون", cal: 119, p: 0, c: 0, f: 13.5 },
+{ name: "جوز", cal: 654, p: 15.2, c: 13.7, f: 65.2 },
+{ name: "لوز", cal: 579, p: 21.2, c: 21.6, f: 49.9 },
+{ name: "فلافل", cal: 333, p: 13, c: 31, f: 18 },
+{ name: "حمص بطحينة", cal: 166, p: 8, c: 14, f: 9.6 },
+{ name: "بابا غنوج", cal: 120, p: 2, c: 8, f: 9 },
+{ name: "متبل", cal: 150, p: 3, c: 8, f: 12 },
+{ name: "تبولة", cal: 120, p: 3, c: 13, f: 6 },
+{ name: "فتوش", cal: 90, p: 2, c: 10, f: 5 },
+{ name: "مجدرة", cal: 145, p: 6, c: 24, f: 3 },
+{ name: "كبة مقلية", cal: 260, p: 12, c: 22, f: 14 },
+{ name: "شاورما دجاج", cal: 215, p: 22, c: 4, f: 12 },
+{ name: "شاورما لحم", cal: 250, p: 20, c: 5, f: 17 },
+{ name: "ورق عنب", cal: 150, p: 3, c: 24, f: 5 },
+{ name: "محشي كوسا", cal: 130, p: 5, c: 12, f: 6 },
+{ name: "مكدوس", cal: 280, p: 5, c: 10, f: 25 },
+{ name: "شنكليش", cal: 275, p: 20, c: 6, f: 20 },
+{ name: "دبس رمان", cal: 260, p: 0, c: 65, f: 0 },
+{ name: "زعتر", cal: 420, p: 10, c: 35, f: 28 },
+{ name: "سمسم", cal: 573, p: 17, c: 23, f: 50 },
+{ name: "طحينة", cal: 595, p: 17, c: 21, f: 53 },
+{ name: "فريكة نيئة", cal: 340, p: 12, c: 70, f: 2 },
+{ name: "برغل ناعم", cal: 342, p: 12, c: 76, f: 1.3 },
+{ name: "كوسا بلبن", cal: 110, p: 5, c: 8, f: 6 },
+{ name: "يبرق", cal: 165, p: 5, c: 20, f: 7 },
+{ name: "شيش برك", cal: 220, p: 10, c: 18, f: 12 },
+{ name: "مقلوبة", cal: 180, p: 6, c: 20, f: 8 },
+{ name: "رز بحليب", cal: 130, p: 3, c: 22, f: 3 },
+{ name: "مهلبية", cal: 140, p: 3, c: 24, f: 3 },
+{ name: "بقلاوة", cal: 430, p: 7, c: 49, f: 24 },
+{ name: "معمول", cal: 420, p: 7, c: 58, f: 18 },
+{ name: "تمر", cal: 282, p: 2.5, c: 75, f: 0.4 },
+{ name: "تين", cal: 74, p: 0.8, c: 19, f: 0.3 },
+{ name: "كرز", cal: 63, p: 1.1, c: 16, f: 0.2 },
+{ name: "إجاص", cal: 57, p: 0.4, c: 15, f: 0.1 },
+{ name: "رمان", cal: 83, p: 1.7, c: 19, f: 1.2 },
+{ name: "فستق", cal: 562, p: 20, c: 28, f: 45 },
+{ name: "كاجو", cal: 553, p: 18, c: 30, f: 44 },
+{ name: "بزر دوار الشمس", cal: 584, p: 21, c: 20, f: 51 },
+{ name: "فول أخضر", cal: 35, p: 2.8, c: 6.7, f: 0.4 },
+{ name: "بازلاء", cal: 81, p: 5.4, c: 14.5, f: 0.4 },
+{ name: "سبانخ", cal: 23, p: 2.9, c: 3.6, f: 0.4 },
+{ name: "سلق", cal: 19, p: 1.8, c: 3.7, f: 0.2 },
+{ name: "فجل", cal: 16, p: 0.7, c: 3.4, f: 0.1 },
+{ name: "لفت", cal: 28, p: 0.9, c: 6.4, f: 0.1 },
+{ name: "بامية", cal: 33, p: 1.9, c: 7.5, f: 0.2 },
+{ name: "ذرة مسلوقة", cal: 96, p: 3.4, c: 21, f: 1.5 },
+{ name: "زبيب", cal: 299, p: 3.1, c: 79, f: 0.5 },
+{ name: "مشمش", cal: 48, p: 1.4, c: 11, f: 0.4 },
+{ name: "دراق", cal: 39, p: 0.9, c: 9.5, f: 0.3 },
+{ name: "مانجو", cal: 60, p: 0.8, c: 15, f: 0.4 },
+{ name: "أناناس", cal: 50, p: 0.5, c: 13, f: 0.1 },
+{ name: "لب سوري", cal: 584, p: 20, c: 20, f: 51 },
+{ name: "بندق", cal: 628, p: 15, c: 17, f: 61 },
+{ name: "كبة مشوية", cal: 210, p: 16, c: 15, f: 10 },
+{ name: "محمرة", cal: 300, p: 6, c: 20, f: 22 },
+{ name: "مسخن", cal: 280, p: 11, c: 22, f: 16 },
+{ name: "كنافة", cal: 420, p: 8, c: 50, f: 21 },
+{ name: "عوامة", cal: 390, p: 4, c: 60, f: 15 },
+{ name: "رز أبيض نيء", cal: 365, p: 7.1, c: 80, f: 0.7 },
+{ name: "رز بني", cal: 370, p: 7.9, c: 77, f: 2.9 },
+{ name: "برغل", cal: 342, p: 12.3, c: 76, f: 1.3 },
+{ name: "فريكة", cal: 340, p: 12, c: 70, f: 2 },
+{ name: "خبز أسمر", cal: 247, p: 13, c: 41, f: 4.2 },
+{ name: "معكرونة جافة", cal: 371, p: 13, c: 75, f: 1.5 },
+{ name: "سميد", cal: 360, p: 12.7, c: 72.8, f: 1.1 },
+{ name: "عدس", cal: 353, p: 25, c: 60, f: 1.1 },
+{ name: "حمص حب", cal: 364, p: 19, c: 61, f: 6 },
+{ name: "فول يابس", cal: 341, p: 26, c: 58, f: 1.5 },
+{ name: "فاصولياء بيضاء", cal: 333, p: 24, c: 60, f: 0.8 },
+{ name: "دجاج كامل", cal: 239, p: 27, c: 0, f: 14 },
+{ name: "لحم غنم", cal: 294, p: 25, c: 0, f: 21 },
+{ name: "كبدة غنم", cal: 135, p: 20, c: 4, f: 3.6 },
+{ name: "كبدة دجاج", cal: 119, p: 17, c: 1, f: 4.8 },
+{ name: "سمك تونة بالماء", cal: 116, p: 26, c: 0, f: 1 },
+{ name: "سردين", cal: 208, p: 25, c: 0, f: 11 },
+{ name: "سلمون", cal: 208, p: 20, c: 0, f: 13 },
+{ name: "جبنة صفراء", cal: 402, p: 25, c: 1.3, f: 33 },
+{ name: "حليب كامل الدسم", cal: 61, p: 3.2, c: 4.8, f: 3.3 },
+{ name: "كمون", cal: 375, p: 18, c: 44, f: 22 },
+{ name: "كزبرة ناشفة", cal: 298, p: 12, c: 55, f: 18 },
+{ name: "قرفة", cal: 247, p: 4, c: 81, f: 1.2 },
+{ name: "كركم", cal: 354, p: 8, c: 65, f: 10 },
+{ name: "بابريكا", cal: 282, p: 14, c: 54, f: 13 },
+{ name: "زنجبيل مطحون", cal: 335, p: 9, c: 71, f: 4 },
+{ name: "هيل", cal: 311, p: 11, c: 68, f: 7 },
+{ name: "قرنفل", cal: 274, p: 6, c: 66, f: 13 },
+{ name: "يانسون", cal: 337, p: 18, c: 50, f: 16 },
+{ name: "شمر", cal: 345, p: 16, c: 52, f: 15 },
+{ name: "نعناع مجفف", cal: 285, p: 20, c: 53, f: 6 },
+{ name: "زعتر بري", cal: 276, p: 9, c: 64, f: 7 },
+{ name: "إكليل الجبل", cal: 331, p: 5, c: 64, f: 15 },
+{ name: "أوريغانو", cal: 265, p: 9, c: 69, f: 4 },
+{ name: "ريحان مجفف", cal: 233, p: 23, c: 48, f: 4 },
+{ name: "معجون بندورة", cal: 82, p: 4.3, c: 19, f: 0.5 },
+{ name: "كاتشب", cal: 112, p: 1.3, c: 26, f: 0.2 },
+{ name: "مايونيز", cal: 680, p: 1, c: 1, f: 75 },
+{ name: "خردل", cal: 66, p: 4.4, c: 5.8, f: 4.4 },
+{ name: "خل أبيض", cal: 18, p: 0, c: 0, f: 0 },
+{ name: "زيت دوار الشمس", cal: 884, p: 0, c: 0, f: 100 },
+{ name: "زبدة", cal: 717, p: 0.9, c: 0.1, f: 81 },
+{ name: "سمنة", cal: 900, p: 0, c: 0, f: 100 },
+{ name: "بزر يقطين", cal: 559, p: 30, c: 11, f: 49 },
+{ name: "فستق حلبي", cal: 562, p: 20, c: 28, f: 45 },
+{ name: "فول سوداني", cal: 567, p: 26, c: 16, f: 49 },
+{ name: "دبس تمر", cal: 310, p: 2, c: 75, f: 0.2 },
+{ name: "عسل", cal: 304, p: 0.3, c: 82, f: 0 },
+{ name: "سكر أبيض", cal: 387, p: 0, c: 100, f: 0 },
+{ name: "سكر بني", cal: 380, p: 0, c: 98, f: 0 },
+{ name: "ملح", cal: 0, p: 0, c: 0, f: 0 },
+{ name: "فلفل أسود", cal: 251, p: 10, c: 64, f: 3.3 },
+{ name: "شاي أسود", cal: 1, p: 0, c: 0.3, f: 0 },
+{ name: "شاي أخضر", cal: 1, p: 0, c: 0.2, f: 0 },
+{ name: "قهوة سوداء", cal: 2, p: 0.3, c: 0, f: 0 },
+{ name: "قهوة عربية", cal: 2, p: 0.2, c: 0, f: 0 },
+{ name: "نسكافيه", cal: 353, p: 12, c: 75, f: 0.5 },
+{ name: "كاكاو خام", cal: 228, p: 20, c: 58, f: 14 },
+{ name: "حليب قليل الدسم", cal: 42, p: 3.4, c: 5, f: 1 },
+{ name: "حليب خالي الدسم", cal: 34, p: 3.4, c: 5, f: 0.1 },
+{ name: "لبن رائب", cal: 63, p: 3.5, c: 4.7, f: 3.5 },
+{ name: "عيران", cal: 37, p: 2, c: 3.5, f: 1.5 },
+{ name: "عصير برتقال طبيعي", cal: 45, p: 0.7, c: 10.4, f: 0.2 },
+{ name: "عصير تفاح طبيعي", cal: 46, p: 0.1, c: 11.3, f: 0.1 },
+{ name: "عصير رمان", cal: 54, p: 0.2, c: 13, f: 0.1 },
+{ name: "عصير ليمون", cal: 22, p: 0.4, c: 6.9, f: 0.2 },
+{ name: "كولا", cal: 42, p: 0, c: 10.6, f: 0 },
+{ name: "دايت كولا", cal: 1, p: 0, c: 0, f: 0 },
+{ name: "سبرايت", cal: 38, p: 0, c: 9.8, f: 0 },
+{ name: "صودا", cal: 0, p: 0, c: 0, f: 0 },
+{ name: "شراب تمر هندي", cal: 60, p: 0.3, c: 15, f: 0.1 },
+{ name: "شراب خروب", cal: 65, p: 0.4, c: 16, f: 0.1 },
+{ name: "ذرة معلبة", cal: 96, p: 3.4, c: 21, f: 1.5 },
+{ name: "بازلاء معلبة", cal: 69, p: 4.5, c: 12, f: 0.4 },
+{ name: "فاصولياء حمراء معلبة", cal: 127, p: 8.7, c: 22.8, f: 0.5 },
+{ name: "حمص معلب", cal: 164, p: 8.9, c: 27.4, f: 2.6 },
+{ name: "فول مدمس معلب", cal: 110, p: 7.6, c: 19.7, f: 0.6 },
+{ name: "تونة بالزيت", cal: 198, p: 29, c: 0, f: 8 },
+{ name: "سردين معلب", cal: 208, p: 25, c: 0, f: 11 },
+{ name: "فطر معلب", cal: 22, p: 3.1, c: 3.3, f: 0.3 },
+{ name: "زيتون أخضر", cal: 145, p: 1, c: 3.8, f: 15.3 },
+{ name: "زيتون أسود", cal: 116, p: 0.8, c: 6, f: 10.9 },
+{ name: "مخلل خيار", cal: 11, p: 0.3, c: 2.3, f: 0.2 },
+{ name: "مخلل لفت", cal: 28, p: 0.9, c: 6.4, f: 0.1 },
+{ name: "مخلل باذنجان", cal: 35, p: 1.2, c: 7, f: 0.2 },
+{ name: "معجون فليفلة حمراء", cal: 140, p: 4, c: 31, f: 1 },
+{ name: "صلصة بيتزا", cal: 54, p: 1.8, c: 11, f: 0.4 },
+{ name: "صلصة باربكيو", cal: 172, p: 1.5, c: 40, f: 0.5 },
+{ name: "صلصة الصويا", cal: 53, p: 8, c: 4.9, f: 0.6 },
+{ name: "خل تفاح", cal: 21, p: 0, c: 0.9, f: 0 },
+{ name: "ماء جوز الهند", cal: 19, p: 0.7, c: 3.7, f: 0.2 },
+{ name: "فول مدمس", cal: 110, p: 7.6, c: 18.7, f: 0.4 },
+{ name: "مسبحة", cal: 180, p: 8, c: 18, f: 8 },
+{ name: "حمص بالطحينة", cal: 166, p: 7.9, c: 14.3, f: 9.6 },
+{ name: "فتة حمص", cal: 220, p: 8, c: 24, f: 10 },
+{ name: "لبنة بالزعتر", cal: 250, p: 11, c: 8, f: 20 },
+{ name: "جبنة حلوم", cal: 321, p: 22, c: 2, f: 26 },
+{ name: "جبنة قشقوان", cal: 404, p: 25, c: 1, f: 33 },
+{ name: "مرتديلا", cal: 311, p: 13, c: 3, f: 28 },
+{ name: "زيتون", cal: 145, p: 1, c: 4, f: 15 },
+{ name: "مربى", cal: 250, p: 0.3, c: 65, f: 0.2 },
+{ name: "زعتر مع زيت", cal: 470, p: 10, c: 35, f: 35 },
+{ name: "مناقيش زعتر", cal: 330, p: 8, c: 42, f: 15 },
+{ name: "مناقيش جبنة", cal: 320, p: 12, c: 35, f: 16 },
+{ name: "مناقيش لحمة", cal: 290, p: 13, c: 30, f: 14 },
+{ name: "فطيرة جبنة", cal: 310, p: 10, c: 34, f: 15 },
+{ name: "فطيرة سبانخ", cal: 250, p: 7, c: 33, f: 10 },
+{ name: "بيتزا جبنة", cal: 266, p: 11, c: 33, f: 10 },
+{ name: "بيتزا خضار", cal: 240, p: 10, c: 34, f: 8 },
+{ name: "بيتزا مرتديلا", cal: 290, p: 13, c: 30, f: 13 },
+{ name: "بيض مسلوق", cal: 155, p: 13, c: 1.1, f: 11 },
+{ name: "بيض مقلي", cal: 196, p: 13.6, c: 1, f: 15 },
+{ name: "شكشوكة", cal: 140, p: 7, c: 6, f: 10 },
+{ name: "سجق", cal: 301, p: 16, c: 2, f: 25 },
+{ name: "شوكولاتة بالحليب", cal: 535, p: 7.6, c: 59.4, f: 29.7 },
+{ name: "شوكولاتة داكنة", cal: 598, p: 7.8, c: 45.9, f: 42.6 },
+{ name: "بسكويت شاي", cal: 450, p: 6, c: 72, f: 14 },
+{ name: "كوكيز", cal: 488, p: 5.9, c: 68.5, f: 23.7 },
+{ name: "كيك فانيلا", cal: 389, p: 4.7, c: 58, f: 16 },
+{ name: "دونات", cal: 452, p: 4.9, c: 51, f: 25 },
+{ name: "كرواسون", cal: 406, p: 8.2, c: 45.8, f: 21 },
+{ name: "ويفر", cal: 518, p: 6.8, c: 61, f: 27 },
+{ name: "آيس كريم فانيلا", cal: 207, p: 3.5, c: 24, f: 11 },
+{ name: "فشار بالزيت", cal: 535, p: 7.3, c: 57.2, f: 28.1 },
+{ name: "رقائق بطاطس", cal: 536, p: 7, c: 53, f: 35 },
+{ name: "بريتزل", cal: 380, p: 10, c: 80, f: 2.5 },
+{ name: "ماء", cal: 0, p: 0, c: 0, f: 0 },
+{ name: "نسكافيه بدون سكر", cal: 2, p: 0.3, c: 0.3, f: 0 },
+{ name: "عصير برتقال", cal: 45, p: 0.7, c: 10.4, f: 0.2 },
+{ name: "عصير تفاح", cal: 46, p: 0.1, c: 11.3, f: 0.1 },
+{ name: "مشروب غازي", cal: 42, p: 0, c: 10.6, f: 0 },
+{ name: "مشروب طاقة", cal: 45, p: 0, c: 11, f: 0 },
+{ name: "جوز البقان", cal: 691, p: 9.2, c: 13.9, f: 72 },
+{ name: "صنوبر", cal: 673, p: 13.7, c: 13.1, f: 68.4 },
+{ name: "مكاديميا", cal: 718, p: 7.9, c: 13.8, f: 75.8 },
+{ name: "لب دوار الشمس", cal: 584, p: 20.8, c: 20, f: 51.5 },
+{ name: "لب اليقطين", cal: 559, p: 30.2, c: 10.7, f: 49.1 },
+{ name: "اكسبريس", cal: 100, p: 10, c: 20, f: 0 },
+{ name: "بقلاوة بالفستق", cal: 500, p: 8, c: 52, f: 31 },
+{ name: "بقلاوة بالجوز", cal: 500, p: 7, c: 55, f: 29 },
+{ name: "أصابع بقلاوة", cal: 510, p: 7, c: 54, f: 30 },
+{ name: "عش البلبل", cal: 515, p: 8, c: 50, f: 32 },
+{ name: "بلورية", cal: 530, p: 8, c: 51, f: 33 },
+{ name: "مبرومة بالفستق", cal: 540, p: 9, c: 49, f: 35 },
+{ name: "مبرومة بالجوز", cal: 515, p: 7, c: 53, f: 31 },
+{ name: "برازق", cal: 485, p: 8, c: 58, f: 24 },
+{ name: "غريبة", cal: 495, p: 6, c: 61, f: 25 },
+{ name: "معمول فستق", cal: 470, p: 8, c: 56, f: 21 },
+{ name: "معمول جوز", cal: 455, p: 7, c: 58, f: 19 },
+{ name: "معمول تمر", cal: 440, p: 6, c: 63, f: 16 },
+{ name: "نمورة", cal: 365, p: 5, c: 60, f: 11 },
+{ name: "هريسة", cal: 370, p: 5, c: 61, f: 11 },
+{ name: "كنافة ناعمة", cal: 430, p: 8, c: 52, f: 20 },
+{ name: "كنافة خشنة", cal: 425, p: 8, c: 51, f: 20 },
+{ name: "كنافة بالقشطة", cal: 390, p: 9, c: 42, f: 20 },
+{ name: "زنود الست", cal: 455, p: 7, c: 43, f: 28 },
+{ name: "شعيبيات بالقشطة", cal: 430, p: 8, c: 40, f: 25 },
+{ name: "شعيبيات بالجوز", cal: 445, p: 7, c: 44, f: 27 },
+{ name: "شعيبيات بالفستق", cal: 455, p: 8, c: 42, f: 29 },
+{ name: "وربات بالقشطة", cal: 410, p: 8, c: 39, f: 23 },
+{ name: "وربات بالفستق", cal: 430, p: 8, c: 41, f: 26 },
+{ name: "وربات بالجوز", cal: 420, p: 7, c: 43, f: 24 },
+{ name: "حلاوة الجبن", cal: 315, p: 8, c: 47, f: 10 },
+{ name: "كلاج بالقشطة", cal: 395, p: 8, c: 40, f: 21 },
+{ name: "كلاج بالجوز", cal: 420, p: 7, c: 44, f: 24 },
+{ name: "مفروكة", cal: 410, p: 9, c: 38, f: 24 },
+{ name: "عش السرايا", cal: 290, p: 4, c: 56, f: 6 },
+{ name: "ليالي لبنان", cal: 180, p: 5, c: 29, f: 5 },
+{ name: "موالح صيني", cal: 500, p: 10, c: 58, f: 25 },
+{ name: "جبنة سوري", cal: 265, p: 14, c: 4, f: 21 },
+{ name: "لب أبيض", cal: 559, p: 30.2, c: 10.7, f: 49 },
+{ name: "لب أسود", cal: 584, p: 20.8, c: 20, f: 51.5 },
+{ name: "حمص محمص", cal: 364, p: 19, c: 61, f: 6 },
+{ name: "ذرة محمصة", cal: 446, p: 9, c: 74, f: 15 },
+{ name: "شيبس بطاطا", cal: 536, p: 7, c: 53, f: 35 },
+{ name: "شيبس ذرة", cal: 500, p: 6, c: 63, f: 24 },
+{ name: "كراكر مالح", cal: 430, p: 10, c: 72, f: 11 },
+{ name: "أرز منفوش مالح", cal: 402, p: 7, c: 83, f: 4 },
+{ name: "ميكس مكسرات مملحة", cal: 610, p: 20, c: 19, f: 54 },
+{ name: "لبن زبادي كامل الدسم", cal: 61, p: 3.5, c: 4.7, f: 3.3 },
+{ name: "لبن زبادي قليل الدسم", cal: 50, p: 4, c: 5, f: 1.5 },
+{ name: "لبنة قليلة الدسم", cal: 140, p: 12, c: 8, f: 7 },
+{ name: "جبنة فيتا", cal: 265, p: 14, c: 4, f: 21 },
+{ name: "جبنة موزاريلا", cal: 280, p: 28, c: 3, f: 17 },
+{ name: "جبنة شيدر", cal: 403, p: 25, c: 1.3, f: 33 },
+{ name: "جبنة كريمية", cal: 342, p: 6, c: 4, f: 34 },
+{ name: "جبنة مثلثات", cal: 290, p: 12, c: 8, f: 24 },
+{ name: "قشطة", cal: 340, p: 2, c: 3, f: 36 },
+{ name: "كريمة طبخ", cal: 195, p: 2.5, c: 4, f: 20 },
+{ name: "بامية باللحمة", cal: 82, p: 6, c: 5, f: 4.5 },
+{ name: "فاصولياء خضراء باللحمة", cal: 95, p: 6.5, c: 7, f: 5 },
+{ name: "فاصولياء ناعمة باللحمة", cal: 92, p: 6.5, c: 6.5, f: 5 },
+{ name: "فاصولياء عريضة باللحمة", cal: 100, p: 6.8, c: 8, f: 5 },
+{ name: "بطاطا باللحمة", cal: 115, p: 6.5, c: 10, f: 6 },
+{ name: "بازلاء باللحمة", cal: 120, p: 7, c: 11, f: 6 },
+{ name: "ملوخية بالدجاج", cal: 110, p: 9, c: 5, f: 6 },
+{ name: "سبانخ باللحمة", cal: 98, p: 7, c: 6, f: 5 },
+{ name: "شيخ المحشي", cal: 145, p: 8, c: 8, f: 9 },
+{ name: "داود باشا", cal: 170, p: 10, c: 7, f: 11 },
+{ name: "شاكرية", cal: 155, p: 9, c: 5, f: 11 },
+{ name: "كبة باللبن", cal: 180, p: 9, c: 12, f: 10 },
+{ name: "كوسا محشي", cal: 140, p: 7, c: 13, f: 7 },
+{ name: "ورق عنب", cal: 150, p: 3, c: 24, f: 5 },
+{ name: "ملفوف محشي", cal: 145, p: 4, c: 22, f: 5 },
+{ name: "رز أبيض مطبوخ", cal: 130, p: 2.7, c: 28.2, f: 0.3 },
+{ name: "فاصولياء خضراء", cal: 90, p: 5, c: 9, f: 4 },
+{ name: "فاصولياء ناعمة", cal: 95, p: 5, c: 10, f: 4 },
+{ name: "فاصولياء عريضة", cal: 100, p: 5, c: 11, f: 4 },
+{ name: "ملوخية", cal: 80, p: 5, c: 7, f: 3 },
+{ name: "قرنبيط", cal: 78, p: 3, c: 8, f: 3 },
+{ name: "لوبياء", cal: 96, p: 5, c: 10, f: 4 },
+{ name: "يخنة جزر", cal: 88, p: 2, c: 12, f: 3 },
+{ name: "يخنة مشروم", cal: 65, p: 3, c: 6, f: 2 },
+{ name: "يخنة بازلاء وجزر", cal: 95, p: 4, c: 12, f: 3 },
+{ name: "يخنة بندورة", cal: 60, p: 2, c: 7, f: 2 },
+{ name: "يخنة كرفس", cal: 68, p: 2, c: 7, f: 3 },
+{ name: "فول", cal: 125, p: 8, c: 17, f: 3 },
+{ name: "لوبيا بزيت", cal: 105, p: 4, c: 12, f: 5 },
+{ name: "بطاطا وجزر", cal: 100, p: 3, c: 15, f: 3 },
+{ name: "خضار مشكلة", cal: 82, p: 3, c: 10, f: 3 },
+{ name: "يخنة باذنجان", cal: 90, p: 2, c: 10, f: 4 },
+{ name: "باذنجان محشي", cal: 175, p: 7, c: 16, f: 9 },
+{ name: "فليفلة محشية", cal: 170, p: 7, c: 15, f: 8 },
+{ name: "بطاطا محشية", cal: 180, p: 6, c: 20, f: 8 },
+{ name: "كبة سفرجلية", cal: 205, p: 10, c: 18, f: 10 },
+{ name: "كوسا باللبن", cal: 145, p: 8, c: 9, f: 8 },
+{ name: "باذنجان باللبن", cal: 150, p: 7, c: 10, f: 9 },
+{ name: "محشي بندورة", cal: 165, p: 7, c: 15, f: 8 },
+{ name: "محشي بصل", cal: 175, p: 6, c: 19, f: 8 },
+{ name: "محشي ورق سلق", cal: 160, p: 5, c: 20, f: 6 },
+{ name: "محشي لوبياء", cal: 170, p: 7, c: 16, f: 8 },
+{ name: "محشي كرنب", cal: 165, p: 7, c: 15, f: 7 },
+{ name: "محشي مشكلة", cal: 175, p: 7, c: 17, f: 8 },
+{ name: "كوسا ورز", cal: 155, p: 4, c: 24, f: 5 },
+{ name: "باذنجان ورز", cal: 160, p: 4, c: 24, f: 6 },
+{ name: "فليفلة ورز", cal: 158, p: 4, c: 23, f: 6 },
+{ name: "ورق عنب بالزيت", cal: 195, p: 3, c: 30, f: 7 },
+{ name: "ورق عنب باللحم", cal: 205, p: 8, c: 20, f: 10 },
+{ name: "محشي قرع", cal: 160, p: 6, c: 16, f: 7 },
+{ name: "محشي جزر", cal: 155, p: 5, c: 18, f: 6 },
+{ name: "محشي فطر", cal: 145, p: 7, c: 10, f: 7 },
+{ name: "رز بالشعيرية", cal: 170, p: 3.5, c: 33, f: 3 },
+{ name: "رز بالخضار", cal: 145, p: 3, c: 28, f: 2 },
+{ name: "رز مكسيكانو", cal: 155, p: 4, c: 29, f: 3 },
+{ name: "رز بالبازلاء", cal: 150, p: 4, c: 28, f: 2.5 },
+{ name: "رز بالجزر", cal: 148, p: 3, c: 30, f: 2 },
+{ name: "كبسة", cal: 180, p: 8, c: 24, f: 6 },
+{ name: "برياني", cal: 190, p: 8, c: 25, f: 7 },
+{ name: "منسف", cal: 210, p: 10, c: 20, f: 9 },
+{ name: "برغل مفلفل", cal: 145, p: 4, c: 28, f: 2 },
+{ name: "رز بالدجاج", cal: 185, p: 10, c: 22, f: 6 },
+{ name: "رز باللحم", cal: 195, p: 9, c: 21, f: 8 },
+{ name: "رز بالكاري", cal: 165, p: 4, c: 29, f: 4 },
+{ name: "رز بالذرة", cal: 150, p: 3, c: 30, f: 2 },
+{ name: "رز بالفطر", cal: 145, p: 4, c: 27, f: 2 },
+{ name: "رز بالحمص", cal: 165, p: 6, c: 28, f: 3 },
+{ name: "برغل بالبندورة", cal: 140, p: 4, c: 27, f: 2 },
+{ name: "برغل بالخضار", cal: 135, p: 4, c: 26, f: 2 },
+{ name: "فريكة بالدجاج", cal: 180, p: 10, c: 22, f: 5 },
+{ name: "فريكة باللحم", cal: 195, p: 10, c: 20, f: 8 },
+{ name: "أرز أبيض مسلوق", cal: 130, p: 2.5, c: 28, f: 0.3 },
+{ name: "برغل مسلوق", cal: 120, p: 3.5, c: 25, f: 0.5 },
+{ name: "فريكة مسلوقة", cal: 135, p: 5, c: 24, f: 1 },
+{ name: "رز صيادية", cal: 185, p: 9, c: 23, f: 6 },
+{ name: "فتة باذنجان", cal: 180, p: 7, c: 20, f: 8 },
+{ name: "حرّاق إصبعو", cal: 165, p: 6, c: 26, f: 4 },
+{ name: "مسقعة", cal: 120, p: 3, c: 10, f: 7 },
+{ name: "سجق حلبي", cal: 320, p: 15, c: 3, f: 28 },
+{ name: "كباب كرز", cal: 230, p: 15, c: 10, f: 14 },
+{ name: "أوصال", cal: 250, p: 20, c: 2, f: 18 },
+{ name: "فتة دجاج", cal: 210, p: 12, c: 18, f: 10 },
+{ name: "لبنية", cal: 165, p: 9, c: 9, f: 10 },
+{ name: "كشك", cal: 140, p: 6, c: 18, f: 4 },
+{ name: "كباب لحم", cal: 250, p: 26, c: 2, f: 16 },
+{ name: "كباب دجاج", cal: 210, p: 27, c: 1, f: 10 },
+{ name: "شيش طاووق", cal: 147, p: 17.83, c: 1.05, f: 7.57 },
+{ name: "شيش كباب", cal: 245, p: 25, c: 1, f: 16 },
+{ name: "أوصال لحم", cal: 240, p: 27, c: 0, f: 15 },
+{ name: "ريش غنم", cal: 320, p: 23, c: 0, f: 26 },
+{ name: "كفتة مشوية", cal: 255, p: 24, c: 4, f: 17 },
+{ name: "عرائس لحم", cal: 290, p: 16, c: 20, f: 16 },
+{ name: "جوانح دجاج مشوية", cal: 225, p: 24, c: 1, f: 15 },
+{ name: "صدر دجاج مشوي", cal: 165, p: 31, c: 0, f: 4 },
+{ name: "ورك دجاج مشوي", cal: 215, p: 26, c: 0, f: 12 },
+{ name: "سمك مشوي", cal: 160, p: 24, c: 0, f: 5 },
+{ name: "سجق مشوي", cal: 315, p: 15, c: 3, f: 28 },
+{ name: "كبدة مشوية", cal: 190, p: 27, c: 4, f: 6 },
+{ name: "قلوب دجاج مشوية", cal: 185, p: 26, c: 1, f: 8 },
+{ name: "لحمة مشوية", cal: 260, p: 28, c: 0, f: 17 },
+{ name: "طاووق بالثوم", cal: 205, p: 28, c: 2, f: 9 },
+{ name: "كباب حلبي", cal: 255, p: 25, c: 2, f: 17 },
+{ name: "كباب خشخاش", cal: 240, p: 24, c: 4, f: 15 },
+{ name: "كباب باذنجان", cal: 220, p: 18, c: 8, f: 14 },
+{ name: "أسياخ لحم", cal: 245, p: 27, c: 1, f: 16 },
+{ name: "أسياخ دجاج", cal: 180, p: 30, c: 1, f: 5 },
+{ name: "برغر مشوي", cal: 250, p: 20, c: 10, f: 15 },
+{ name: "نقانق مشوية", cal: 300, p: 14, c: 3, f: 27 },
+{ name: "سمان مشوي", cal: 235, p: 25, c: 0, f: 15 },
+{ name: "صفيحة بعلبكية", cal: 310, p: 13, c: 31, f: 16 },
+{ name: "فطيرة بطاطا", cal: 250, p: 6, c: 40, f: 7 },
+{ name: "فطيرة زعتر", cal: 300, p: 8, c: 43, f: 11 },
+{ name: "معروك", cal: 340, p: 8, c: 58, f: 8 },
+{ name: "خبز تنور", cal: 270, p: 8, c: 54, f: 2 },
+{ name: "خبز صاج", cal: 265, p: 8, c: 53, f: 2 },
+{ name: "بيتزا لحم", cal: 295, p: 14, c: 30, f: 13 },
+{ name: "كرواسون سادة", cal: 406, p: 8, c: 45, f: 21 },
+{ name: "كرواسون جبنة", cal: 420, p: 10, c: 40, f: 24 },
+{ name: "فطيرة سجق", cal: 330, p: 13, c: 30, f: 18 },
+{ name: "فطيرة دجاج", cal: 290, p: 15, c: 29, f: 12 },
+{ name: "سمبوسك جبنة", cal: 320, p: 9, c: 30, f: 18 },
+{ name: "سمبوسك لحم", cal: 340, p: 12, c: 28, f: 21 },
+{ name: "سمبوسك سبانخ", cal: 290, p: 7, c: 31, f: 15 },
+{ name: "مطبق", cal: 310, p: 10, c: 35, f: 14 },
+{ name: "خبز بالسمسم", cal: 285, p: 9, c: 52, f: 4 },
+{ name: "متبل باذنجان", cal: 110, p: 2, c: 8, f: 7 },
+{ name: "لبنة بالثوم", cal: 190, p: 10, c: 6, f: 13 },
+{ name: "سلطة عربية", cal: 45, p: 1.5, c: 6, f: 2 },
+{ name: "سلطة خضراء", cal: 30, p: 1, c: 5, f: 1 },
+{ name: "سلطة خيار باللبن", cal: 70, p: 3, c: 5, f: 4 },
+{ name: "سلطة ملفوف", cal: 55, p: 1, c: 8, f: 2 },
+{ name: "سلطة جرجير", cal: 35, p: 2, c: 4, f: 1 },
+{ name: "سلطة شمندر", cal: 60, p: 2, c: 10, f: 1 },
+{ name: "سلطة بطاطا", cal: 140, p: 3, c: 20, f: 5 },
+{ name: "فلفل مخلل", cal: 25, p: 1, c: 5, f: 0 },
+{ name: "ثومية", cal: 480, p: 2, c: 8, f: 50 },
+{ name: "كريمة ثوم", cal: 430, p: 2, c: 7, f: 44 },
+{ name: "دبس فليفلة", cal: 180, p: 3, c: 36, f: 2 },
+{ name: "قطايف بالقشطة", cal: 300, p: 7, c: 42, f: 10 },
+{ name: "قطايف بالجوز", cal: 340, p: 6, c: 45, f: 13 },
+{ name: "مشبك", cal: 410, p: 4, c: 72, f: 12 },
+{ name: "راحة", cal: 330, p: 1, c: 82, f: 0 },
+{ name: "حلاوة جبن", cal: 320, p: 8, c: 44, f: 12 },
+{ name: "أرز بحليب", cal: 135, p: 4, c: 24, f: 2 },
+{ name: "كريم كراميل", cal: 150, p: 4, c: 26, f: 2 },
+{ name: "بوظة عربية", cal: 220, p: 5, c: 28, f: 10 },
+{ name: "مغلي", cal: 140, p: 3, c: 30, f: 1 },
+{ name: "سندويشة شاورما دجاج", cal: 240, p: 15, c: 20, f: 11 },
+{ name: "سندويشة شاورما لحم", cal: 280, p: 15, c: 19, f: 16 },
+{ name: "سندويشة فلافل", cal: 290, p: 9, c: 35, f: 13 },
+{ name: "سندويشة كبدة", cal: 250, p: 16, c: 20, f: 10 },
+{ name: "سندويشة سجق", cal: 320, p: 14, c: 20, f: 20 },
+{ name: "سندويشة كباب", cal: 270, p: 17, c: 18, f: 14 },
+{ name: "سندويشة شيش طاووق", cal: 230, p: 18, c: 19, f: 8 },
+{ name: "سندويشة برغر", cal: 265, p: 14, c: 22, f: 13 },
+{ name: "سندويشة زنجر", cal: 300, p: 16, c: 24, f: 16 },
+{ name: "سندويشة بطاطا", cal: 220, p: 5, c: 35, f: 7 },
+{ name: "سندويشة جبنة", cal: 280, p: 12, c: 28, f: 13 },
+{ name: "سندويشة لبنة", cal: 240, p: 9, c: 27, f: 10 },
+{ name: "سندويشة زعتر", cal: 310, p: 8, c: 43, f: 12 },
+{ name: "سندويشة مرتديلا", cal: 295, p: 12, c: 25, f: 16 },
+{ name: "سندويشة نقانق", cal: 315, p: 13, c: 22, f: 19 },
+{ name: "سندويشة تونة", cal: 210, p: 17, c: 18, f: 7 },
+{ name: "سندويشة بيض", cal: 230, p: 11, c: 21, f: 11 },
+{ name: "سندويشة حلوم", cal: 300, p: 16, c: 20, f: 18 },
+{ name: "سندويشة دجاج مشوي", cal: 220, p: 18, c: 20, f: 6 },
+{ name: "سندويشة أوصال", cal: 275, p: 18, c: 18, f: 15 },
+{ name: "سندويشة كفتة", cal: 270, p: 17, c: 19, f: 14 },
+{ name: "سندويشة فاهيتا", cal: 235, p: 16, c: 20, f: 8 },
+{ name: "سندويشة هوت دوغ", cal: 290, p: 11, c: 24, f: 17 },
+{ name: "سندويشة مسحب", cal: 295, p: 17, c: 23, f: 15 },
+{ name: "سندويشة بطاطا مع جبنة", cal: 260, p: 8, c: 30, f: 11 },
+{ name: "إسبريسو", cal: 2, p: 0.3, c: 0, f: 0 },
+{ name: "قهوة سادة", cal: 2, p: 0.2, c: 0, f: 0 },
+{ name: "شاي", cal: 1, p: 0, c: 0.2, f: 0 },
+{ name: "كركديه", cal: 1, p: 0, c: 0.2, f: 0 },
+{ name: "بابونج", cal: 1, p: 0, c: 0.2, f: 0 },
+{ name: "نعناع", cal: 1, p: 0, c: 0.2, f: 0 },
+{ name: "ليموناضة", cal: 40, p: 0.1, c: 10, f: 0 },
+{ name: "عصير مانجو", cal: 60, p: 0.4, c: 15, f: 0.2 },
+{ name: "عصير جزر", cal: 39, p: 0.9, c: 9, f: 0.2 },
+{ name: "لبن قليل الدسم", cal: 46, p: 3.4, c: 5, f: 1.5 },
+{ name: "لبن كامل الدسم", cal: 61, p: 3.3, c: 4.7, f: 3.3 },
+{ name: "مشروب طاقة خالٍ من السكر", cal: 2, p: 0, c: 0, f: 0 },
+{ name: "كولا دايت", cal: 1, p: 0, c: 0, f: 0 },
+{ name: "قرص فلافل واحد", cal: 6500, p: 260, c: 520, f: 380 },
+{ name: "خبز شوفان", cal: 352, p: 12, c: 70, f: 3.2 },
+{ name: "لحم غنم مطبوخ", cal: 260, p: 25, c: 0, f: 18 },
+{ name: "تفاح اخضر", cal: 194, p: 1.4, c: 45.4, f: 0.6 },
+{ name: "منسف لحم", cal: 385, p: 21, c: 28, f: 19 },
+{ name: "لبن عيران", cal: 125, p: 7, c: 9.5, f: 6.5 },
+{ name: "لحم بعجين", cal: 260, p: 15, c: 30, f: 14 },
+{ name: "طرابيش", cal: 500, p: 8, c: 65, f: 28 },
+{ name: "كباب جاموس", cal: 305, p: 17.9, c: 4.4, f: 24 },
+{ name: "منفوشة", cal: 375, p: 11, c: 78, f: 4.5 },
+{ name: "كبة تركية", cal: 180, p: 4, c: 35, f: 15 },
+{ name: "يالنجة", cal: 150, p: 4, c: 35, f: 8 },
+{ name: "محشي بنشي", cal: 111, p: 5.8, c: 15, f: 3.2 }
+ ];
+
+let activitiesDB = [
+{ name: "دراجة هوائية", rate: 16 },
+{ name: "مشي", rate: 10 },
+{ name: "جري ركض", rate: 14 },
+{ name: "سباحة", rate: 12 },
+{ name: "تمارين حديد", rate: 8 },
+{ name: "نط الحبل", rate: 15 }
+ ];
+
+let currentCal = 77500;
+let totalInc = 0;
+let totalExp = 0;
+let curP = 0, curC = 0, curF = 0;
+
+let targetP = 166;
+let targetC = 200;
+let targetF = 60;
+
+let currentWeight = 140.0;
+let selFoodIdx = 0;
+let selActIdx = 0;
+let transactionsLog = [];
+let weightLog = [];
+
+window.onload = function() {
+let dt = getDateTimeData();
+weightLog.push({ id: Date.now(), date: dt.dateStr, weight: 140.0, diff: 0, totalDiff: 0, year: dt.year, month: dt.month });
+renderWeightLogTable();
+calcWeightFormulas();
+updateCalUI();
+};
+
+function switchMainPage(page) {
+document.getElementById('page-calories').classList.remove('active');
+document.getElementById('page-transactions').classList.remove('active');
+document.getElementById('page-weight').classList.remove('active');
+document.getElementById('page-reports').classList.remove('active');
+document.getElementById('btn-switch-cal').classList.remove('active');
+document.getElementById('btn-switch-wt').classList.remove('active');
+
+if(page === 'cal') {
+document.getElementById('page-calories').classList.add('active');
+document.getElementById('btn-switch-cal').classList.add('active');
+} else if(page === 'txs') {
+document.getElementById('page-transactions').classList.add('active');
+renderTransactions();
+} else if(page === 'wt') {
+document.getElementById('page-weight').classList.add('active');
+document.getElementById('btn-switch-wt').classList.add('active');
+calcWeightFormulas();
+} else if(page === 'rep') {
+document.getElementById('page-reports').classList.add('active');
+onReportFilterChange();
+}
+}
+
+function openActionForm(formType) {
+let modal = document.getElementById('form-modal');
+let body = document.getElementById('modal-body');
+modal.classList.add('active');
+
+if(formType === 'income') {
+body.innerHTML = `
+<div class="card-title" style="font-size:15px; justify-content:space-between; margin-bottom:8px;">
+<span>إضافة مدخول (أكل)</span>
+<i class="fa-solid fa-xmark" onclick="closeForm()" style="cursor:pointer; font-size:18px;"></i>
+</div>
+
+<button class="btn-add-inline" onclick="openActionForm('add_food')">
+<i class="fa-solid fa-plus-circle"></i> + إضافة صنف طعام جديد مو موجود بالقائمة
+</button>
+
+<div class="input-box"><input type="text" id="srch-food" placeholder="بحث في القائمة..." oninput="filterFoodList()"></div>
+<div class="food-list" id="f-list"></div>
+<div class="input-box"><label>الكمية (غرام)</label><input type="number" id="eat-g" placeholder="150"></div>
+
+<div class="grid-2" style="margin-top: 10px;">
+<button class="btn-action-sm btn-warning-custom" onclick="editSelectedFood()"><i class="fa-solid fa-pen-to-square"></i> تعديل الصنف المحدد</button>
+<button class="btn-action-sm btn-danger-custom" onclick="deleteSelectedFood()"><i class="fa-solid fa-trash"></i> حذف الصنف المحدد</button>
+</div>
+
+<button class="btn-main" style="background:var(--green-in); margin-top: 6px;" onclick="submitFoodIncome()">حفظ المدخول</button>
+; renderFoodList(foodsDB); } else if(formType === 'expense') { body.innerHTML =
+<div class="card-title" style="font-size:15px; justify-content:space-between; margin-bottom:8px;">
+<span>تسجيل مصروف (رياضة وحرق)</span>
+<i class="fa-solid fa-xmark" onclick="closeForm()" style="cursor:pointer; font-size:18px;"></i>
+</div>
+
+<button class="btn-add-inline red" onclick="openActionForm('add_activity')">
+<i class="fa-solid fa-plus-circle"></i> + إضافة نشاط رياضي جديد مو موجود
+</button>
+
+<div class="input-box"><input type="text" id="srch-act" placeholder="بحث في أنشطة الرياضة..." oninput="filterActivityList()"></div>
+<div class="food-list" id="act-list"></div>
+
+<div class="input-box"><label>المدة بالدقائق</label><input type="number" id="exp-mins" placeholder="30"></div>
+<button class="btn-main" style="background:var(--red-out);" onclick="submitActivityExpense()">خصم المصروف</button>
+; renderActivityList(activitiesDB); } else if(formType === 'surplus_details') { let surplusVal = 1500 - totalInc; body.innerHTML =
+<div class="card-title" style="font-size:15px; justify-content:space-between; margin-bottom:8px;">
+<span>تفاصيل بطاقة الفائض والمصروف</span>
+<i class="fa-solid fa-xmark" onclick="closeForm()" style="cursor:pointer; font-size:18px;"></i>
+</div>
+<div class="box-item" style="background:#fefce8; border:1px solid #fde047; padding:14px; text-align:center; margin-bottom:10px;">
+<div class="box-title" style="color:#854d0e;">قيمة الفائض الحالي</div>
+<div class="box-val" style="color:#a16207; font-size:24px; margin-top:4px;">{totalExp.toLocaleString()} سعرة</div>
+</div>
+<div class="box-item">
+<div class="box-title">إجمالي المدخول (أكل)</div>
+<div class="box-val" style="color:var(--green-in); font-size:16px;">${totalInc.toLocaleString()} سعرة&lt;/div&gt; &lt;/div&gt; &lt;/div&gt; &lt;div style="font-size: 11px; color: var(--text-sub); text-align: center; margin-top: 8px;"&gt; مؤشر الفائض = 1500 ناقص المدخول الحالي (مستقل لا يؤثر بالحسابات الأساسية) &lt;/div&gt;;
+} else if(formType === 'balance') {
+body.innerHTML = &lt;div class="card-title" style="font-size:15px;"&gt;&lt;span&gt;تحديث رصيد السعرات مباشرة&lt;/span&gt; &lt;i class="fa-solid fa-xmark" onclick="closeForm()" style="cursor:pointer; font-size:18px;"&gt;&lt;/i&gt;&lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;الرصيد الجديد&lt;/label&gt;&lt;input type="number" id="man-bal" placeholder="77500"&gt;&lt;/div&gt; &lt;button class="btn-main" style="background:var(--orange-btn);" onclick="submitManualBalance()"&gt;تعيين الرصيد&lt;/button&gt;;
+} else if(formType === 'add_food') {
+body.innerHTML = &lt;div class="card-title" style="font-size:15px; justify-content:space-between; margin-bottom:8px;"&gt; &lt;span&gt;إضافة صنف طعام جديد بالقائمة&lt;/span&gt; &lt;i class="fa-solid fa-xmark" onclick="closeForm()" style="cursor:pointer; font-size:18px;"&gt;&lt;/i&gt; &lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;اسم الصنف&lt;/label&gt;&lt;input type="text" id="new-f-name" placeholder="مثال: أرز بالدجاج"&gt;&lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;السعرات الحرارية (لكل 100 غرام)&lt;/label&gt;&lt;input type="number" id="new-f-cal" placeholder="165"&gt;&lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;البروتين (غرام لكل 100 غرام)&lt;/label&gt;&lt;input type="number" id="new-f-p" placeholder="25"&gt;&lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;الكربوهيدرات (غ لكل 100 غ - اختياري)&lt;/label&gt;&lt;input type="number" id="new-f-c" placeholder="0"&gt;&lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;الدهون (غ لكل 100 غ - اختياري)&lt;/label&gt;&lt;input type="number" id="new-f-f" placeholder="0"&gt;&lt;/div&gt; &lt;button class="btn-main" style="background:var(--primary-blue);" onclick="submitNewFoodItem()"&gt;حفظ وإضافة للقائمة&lt;/button&gt;;
+} else if(formType === 'add_activity') {
+body.innerHTML = &lt;div class="card-title" style="font-size:15px; justify-content:space-between; margin-bottom:8px;"&gt; &lt;span&gt;إضافة نشاط رياضي جديد&lt;/span&gt; &lt;i class="fa-solid fa-xmark" onclick="closeForm()" style="cursor:pointer; font-size:18px;"&gt;&lt;/i&gt; &lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;اسم النشاط&lt;/label&gt;&lt;input type="text" id="new-act-name" placeholder="مثال: كرة قدم"&gt;&lt;/div&gt; &lt;div class="input-box"&gt;&lt;label&gt;السعرات المحروقة بالدقيقة الواحدة&lt;/label&gt;&lt;input type="number" id="new-act-rate" placeholder="12"&gt;&lt;/div&gt; &lt;button class="btn-main" style="background:var(--red-out);" onclick="submitNewActivityItem()"&gt;حفظ وإضافة للأنشطة&lt;/button&gt;;
+}
+}
+
+function getDateTimeData() {
+let now = new Date();
+return {
+dateStr: now.toLocaleDateString('en-CA'),
+timeStr: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+year: now.getFullYear().toString(),
+month: (now.getMonth() + 1).toString().padStart(2, '0'),
+day: now.getDate().toString().padStart(2, '0')
+};
+}
+
+function submitNewFoodItem() {
+let name = document.getElementById('new-f-name').value.trim();
+let cal = parseFloat(document.getElementById('new-f-cal').value);
+let p = parseFloat(document.getElementById('new-f-p').value) || 0;
+let c = parseFloat(document.getElementById('new-f-c').value) || 0;
+let f = parseFloat(document.getElementById('new-f-f').value) || 0;
+
+if(!name || isNaN(cal)) {
+alert('الرجاء إدخال اسم الصنف والسعرات بشكل صحيح');
+return;
+}
+
+foodsDB.unshift({ name: name, cal: cal, p: p, c: c, f: f });
+alert(تم إضافة "${name}" بنجاح!`);
+openActionForm('income');
+}
+
+function submitNewActivityItem() {
+let name = document.getElementById('new-act-name').value.trim();
+let rate = parseFloat(document.getElementById('new-act-rate').value);
+
+if(!name || isNaN(rate)) {
+alert('الرجاء إدخال اسم النشاط ومعدل الحرق بالدقيقة بشكل صحيح');
+return;
+}
+
+activitiesDB.unshift({ name: name, rate: rate });
+alert(تم إضافة النشاط "${name}" بنجاح!`);
+openActionForm('expense');
+}
+
+function editSelectedFood() {
+let item = foodsDB[selFoodIdx];
+if(!item) return alert('الرجاء اختيار صنف أولاً من القائمة');
+let newName = prompt("تعديل اسم الصنف:", item.name);
+let newCal = prompt("تعديل السعرات لكل 100غ:", item.cal);
+let newP = prompt("تعديل البروتين لكل 100غ:", item.p || 0);
+if(newName !== null && newCal !== null) {
+item.name = newName.trim();
+item.cal = parseFloat(newCal) || item.cal;
+if(newP !== null) item.p = parseFloat(newP) || 0;
+alert("تم تعديل الصنف بنجاح!");
+renderFoodList(foodsDB);
+}
+}
+
+function deleteSelectedFood() {
+let item = foodsDB[selFoodIdx];
+if(!item) return alert('الرجاء اختيار صنف أولاً من القائمة');
+if(confirm(هل أنت متأكد من حذف "${item.name}" من القائمة؟`)) {
+foodsDB.splice(selFoodIdx, 1);
+selFoodIdx = 0;
+alert("تم حذف الصنف بنجاح!");
+renderFoodList(foodsDB);
+}
+}
+
+function submitFoodIncome() {
+let g = parseFloat(document.getElementById('eat-g').value);
+if(!g || g <= 0) return alert('أدخل الكمية بالغرام');
+let item = foodsDB[selFoodIdx] || foodsDB[0];
+
+let cal = (g / 100) * (item.cal || 0);
+curP += (g / 100) * (item.p || 0);
+curC += (g / 100) * (item.c || 0);
+curF += (g / 100) * (item.f || 0);
+
+currentCal += cal;
+totalInc += cal;
+
+let dt = getDateTimeData();
+transactionsLog.push({
+id: Date.now(), type: 'in', name: مدخول: ${item.name} (${g}غ), val: cal,
+datetime: ${dt.dateStr} • ${dt.timeStr}, year: dt.year, month: dt.month, day: dt.dateStr, cat: 'تغذية'
+});
+
+updateCalUI();
+closeForm();
+}
+
+function submitActivityExpense() {
+let mins = parseFloat(document.getElementById('exp-mins').value);
+if(!mins || mins <= 0) return alert('أدخل الدقائق');
+let act = activitiesDB[selActIdx] || activitiesDB[0];
+
+let burned = mins * act.rate;
+let title = ${act.name} (${mins}د);
+
+currentCal -= burned;
+totalExp += burned;
+
+let dt = getDateTimeData();
+transactionsLog.push({
+id: Date.now(), type: 'out', name: مصروف: ${title}, val: burned, datetime: ``${dt.dateStr} • ${dt.timeStr}`, year: dt.year, month: dt.month, day: dt.dateStr, cat: 'رياضة'
+});
+
+updateCalUI();
+closeForm();
+}
+
+function submitManualBalance() {
+let v = parseFloat(document.getElementById('man-bal').value);
+if(!isNaN(v)) { currentCal = v; updateCalUI(); closeForm(); }
+}
+
+function editTransaction(id) {
+let tx = transactionsLog.find(x => x.id === id);
+if(!tx) return;
+let newVal = prompt("أدخل القيمة الجديدة للسعرات:", tx.val);
+if(newVal !== null) {
+let num = parseFloat(newVal);
+if(!isNaN(num)) {
+if(tx.type === 'in') {
+currentCal += (num - tx.val);
+totalInc += (num - tx.val);
+} else {
+currentCal -= (num - tx.val);
+totalExp += (num - tx.val);
+}
+tx.val = num;
+updateCalUI();
+renderTransactions();
+}
+}
+}
+
+function deleteTransaction(id) {
+let idx = transactionsLog.findIndex(x => x.id === id);
+if(idx !== -1) {
+let tx = transactionsLog[idx];
+if(tx.type === 'in') { currentCal -= tx.val; totalInc -= tx.val; }
+else { currentCal += tx.val; totalExp -= tx.val; }
+transactionsLog.splice(idx, 1);
+updateCalUI();
+renderTransactions();
+}
+}
+
+function editWeightLog(id) {
+let item = weightLog.find(x => x.id === id);
+if(!item) return;
+let newW = prompt("أدخل الوزن الجديد (كغ):", item.weight);
+if(newW !== null) {
+let wNum = parseFloat(newW);
+if(!isNaN(wNum) && wNum > 0) {
+item.weight = wNum;
+recalculateWeightLog();
+renderWeightLogTable();
+currentWeight = weightLog[weightLog.length - 1].weight;
+document.getElementById('wt-current').innerText = currentWeight;
+calcWeightFormulas();
+}
+}
+}
+
+function deleteWeightLog(id) {
+let idx = weightLog.findIndex(x => x.id === id);
+if(idx !== -1) {
+weightLog.splice(idx, 1);
+recalculateWeightLog();
+renderWeightLogTable();
+if(weightLog.length > 0) {
+currentWeight = weightLog[weightLog.length - 1].weight;
+} else {
+currentWeight = 140.0;
+}
+document.getElementById('wt-current').innerText = currentWeight;
+calcWeightFormulas();
+}
+}
+
+function recalculateWeightLog() {
+let prevW = 140.0;
+let cumDiff = 0;
+weightLog.forEach((item, index) => {
+if(index === 0) {
+item.diff = 0;
+item.totalDiff = item.weight - 140.0;
+} else {
+item.diff = item.weight - prevW;
+cumDiff += item.diff;
+item.totalDiff = cumDiff;
+}
+prevW = item.weight;
+});
+}
+
+function updateCalUI() {
+document.getElementById('main-cal-val').innerText = currentCal.toLocaleString();
+document.getElementById('total-inc').innerText = totalInc.toLocaleString();
+document.getElementById('total-exp').innerText = totalExp.toLocaleString();
+
+let surplusVal = 1500 - totalInc;
+document.getElementById('surplus-val').innerHTML = surplusVal.toLocaleString() + ' <span style="font-size:14px;">سعرة</span>';
+
+document.getElementById('m-p').innerText = curP.toFixed(1) + ' غ';
+document.getElementById('m-c').innerText = curC.toFixed(1) + ' غ';
+document.getElementById('m-f').innerText = curF.toFixed(1) + ' غ';
+
+let remP = targetP - curP;
+let remC = targetC - curC;
+let remF = targetF - curF;
+
+document.getElementById('m-p-rem').innerText = (remP > 0 ? remP.toFixed(1) : 0) + ' غ';
+document.getElementById('m-c-rem').innerText = (remC > 0 ? remC.toFixed(1) : 0) + ' غ';
+document.getElementById('m-f-rem').innerText = (remF > 0 ? remF.toFixed(1) : 0) + ' غ';
+}
+
+function renderTransactions() {
+let container = document.getElementById('transactions-list-container');
+if(transactionsLog.length === 0) {
+container.innerHTML = <div style="text-align: center; color: var(--text-sub); padding: 30px; font-size: 13px; background:white; border-radius:14px;"&gt;لا توجد عمليات مسجلة حتى الآن&lt;/div>;
+return;
+}
+container.innerHTML = '';
+transactionsLog.forEach(tx => {
+let card = document.createElement('div');
+card.className = 'tx-card';
+let color = tx.type === 'in' ? 'var(--green-in)' : 'var(--red-out)';
+let sign = tx.type === 'in' ? '+' : '-';
+card.innerHTML = &lt;div class="tx-info"&gt; &lt;h4&gt;${tx.name}</h4>
+<p>{tx.cat}</p>
+</div>
+<div class="tx-amount-side">
+<div class="tx-amount" style="color:{sign} {tx.id})">تعديل</button>
+<button class="btn-action-sm btn-delete" onclick="deleteTransaction(${tx.id})"&gt;حذف&lt;/button&gt; &lt;/div&gt; &lt;/div&gt;;
+container.appendChild(card);
+});
+}
+
+function updateWeightData() {
+let w = parseFloat(document.getElementById('wt-input-new').value);
+if(!isNaN(w) && w > 0) {
+currentWeight = w;
+document.getElementById('wt-current').innerText = currentWeight;
+
+let dt = getDateTimeData();
+let lastWeight = weightLog.length > 0 ? weightLog[weightLog.length - 1].weight : 140.0;
+let diff = w - lastWeight;
+let totalDiff = (weightLog.length > 0 ? weightLog[weightLog.length - 1].totalDiff : 0) + diff;
+
+weightLog.push({
+id: Date.now(),
+date: dt.dateStr,
+weight: w,
+diff: diff,
+totalDiff: totalDiff,
+year: dt.year,
+month: dt.month
+});
+
+renderWeightLogTable();
+calcWeightFormulas();
+document.getElementById('wt-input-new').value = '';
+}
+}
+
+function renderWeightLogTable() {
+let tbody = document.getElementById('weight-log-tbody');
+if(weightLog.length === 0) {
+tbody.innerHTML = <tr&gt;&lt;td colspan="5" style="color:var(--text-sub);"&gt;لا يوجد سجلات وزن بعد&lt;/td&gt;&lt;/tr>;
+return;
+}
+tbody.innerHTML = '';
+weightLog.forEach(item => {
+let tr = document.createElement('tr');
+let diffSign = item.diff > 0 ? '+' : '';
+let totSign = item.totalDiff > 0 ? '+' : '';
+tr.innerHTML = &lt;td&gt;${item.date}</td>
+<td><b>{item.diff > 0 ? 'var(--red-out)' : 'var(--green-in)'};">{item.diff.toFixed(1)}</td>
+<td style="color:{totSign}{item.id})">تعديل</button>
+<button class="btn-action-sm btn-delete" onclick="deleteWeightLog(${item.id})"&gt;حذف&lt;/button&gt; &lt;/td&gt;;
+tbody.appendChild(tr);
+});
+}
+
+function calcWeightFormulas() {
+let target = parseFloat(document.getElementById('wt-target').value) || 90;
+let age = parseFloat(document.getElementById('wt-age').value) || 25;
+let height = parseFloat(document.getElementById('wt-height').value) || 170;
+let act = parseFloat(document.getElementById('wt-activity').value) || 1.55;
+
+let hm = height / 100;
+let bmi = currentWeight / (hm * hm);
+document.getElementById('res-bmi').innerText = bmi.toFixed(1);
+
+let bmr = (10 * currentWeight) + (6.25 * height) - (5 * age) + 5;
+document.getElementById('res-bmr').innerText = bmr.toFixed(0) + ' سعرة';
+
+let tdee = bmr * act;
+document.getElementById('res-tdee').innerText = tdee.toFixed(0) + ' سعرة';
+
+let diffWeight = Math.abs(currentWeight - target);
+let totCal = diffWeight * 7700;
+document.getElementById('res-tot-cal').innerText = totCal.toLocaleString() + ' سعرة';
+
+let weeks = diffWeight / 1.5;
+document.getElementById('res-weeks').innerText = weeks.toFixed(1) + ' أسبوع';
+}
+
+function onReportFilterChange() {
+let filter = document.getElementById('report-filter').value;
+let container = document.getElementById('time-picker-container');
+let dt = getDateTimeData();
+
+container.style.display = 'block';
+if(filter === 'day') {
+container.innerHTML = <div class="input-box"&gt;&lt;label&gt;اختر اليوم المحدد&lt;/label&gt;&lt;input type="date" id="sel-date" value="${dt.dateStr}" onchange="updateReportsUI()"></div>; } else if(filter === 'month') { container.innerHTML =
+<div class="grid-2">
+<div class="input-box"><label>اختر الشهر</label>
+<select id="sel-month" onchange="updateReportsUI()">
+<option value="01">يناير (01)</option><option value="02">فبراير (02)</option><option value="03">مارس (03)</option>
+<option value="04">أبريل (04)</option><option value="05">مايو (05)</option><option value="06">يونيو (06)</option>
+<option value="07">يوليو (07)</option><option value="08">أغسطس (08)</option><option value="09">سبتمبر (09)</option>
+<option value="10" selected>أكتوبر (10)</option><option value="11">نوفمبر (11)</option><option value="12">ديسمبر (12)</option>
+</select>
+</div>
+<div class="input-box"><label>السنة</label><input type="number" id="sel-month-year" value="latex
+{dt.year}" oninput="updateReportsUI()"&gt;&lt;/div&gt; &lt;/div>`; } else if(filter === 'year') { container.innerHTML = `<div class="input-box"&gt;&lt;label&gt;أدخل السنة المطلوبة&lt;/label&gt;&lt;input type="number" id="sel-year" value="
+
+{dt.year}" oninput="updateReportsUI()"></div>`;
+} else {
+container.style.display = 'none';
+}
+updateReportsUI();
+}
+
+function updateReportsUI() {
+let filter = document.getElementById('report-filter').value;
+let fInc = 0, fExp = 0;
+
+let filteredList = transactionsLog.filter(tx => {
+if(filter === 'day') {
+let dVal = document.getElementById('sel-date')?.value;
+return tx.day === dVal;
+} else if(filter === 'month') {
+let mVal = document.getElementById('sel-month')?.value;
+let yVal = document.getElementById('sel-month-year')?.value;
+return tx.month === mVal && tx.year === yVal;
+} else if(filter === 'year') {
+let yVal = document.getElementById('sel-year')?.value;
+return tx.year === yVal;
+}
+return true;
+});
+
+filteredList.forEach(tx => {
+if(tx.type === 'in') fInc += tx.val;
+else fExp += tx.val;
+});
+
+document.getElementById('rep-inc').innerText = fInc.toLocaleString() + ' سعرة';
+document.getElementById('rep-exp').innerText = fExp.toLocaleString() + ' سعرة';
+let net = fInc - fExp;
+document.getElementById('rep-net').innerText = net.toLocaleString() + ' سعرة';
+
+let filteredWeights = weightLog.filter(w => {
+if(filter === 'day') {
+let dVal = document.getElementById('sel-date')?.value;
+return w.date === dVal;
+} else if(filter === 'month') {
+let mVal = document.getElementById('sel-month')?.value;
+let yVal = document.getElementById('sel-month-year')?.value;
+return w.month === mVal && w.year === yVal;
+} else if(filter === 'year') {
+let yVal = document.getElementById('sel-year')?.value;
+return w.year === yVal;
+}
+return true;
+});
+
+let wtDiffText = "0 كغ";
+if(filteredWeights.length >= 2) {
+let firstW = filteredWeights[0].weight;
+let lastW = filteredWeights[filteredWeights.length - 1].weight;
+let diff = lastW - firstW;
+wtDiffText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " كغ";
+} else if(filteredWeights.length === 1) {
+wtDiffText = filteredWeights[0].weight + " كغ (ثابت)";
+}
+document.getElementById('rep-wt-diff').innerText = wtDiffText;
+
+let maxVal = Math.max(fInc, fExp, 1);
+let incPct = Math.round((fInc / maxVal) * 100);
+let expPct = Math.round((fExp / maxVal) * 100);
+
+document.getElementById('chart-inc-lbl').innerText = fInc.toLocaleString() + ' سعرة (' + incPct + '%)';
+document.getElementById('chart-inc-fill').style.width = incPct + '%';
+
+document.getElementById('chart-exp-lbl').innerText = fExp.toLocaleString() + ' سعرة (' + expPct + '%)';
+document.getElementById('chart-exp-fill').style.width = expPct + '%';
+}
+
+function renderFoodList(list) {
+let lst = document.getElementById('f-list');
+if(!lst) return;
+lst.innerHTML = '';
+list.forEach((item, index) => {
+let originalIdx = foodsDB.indexOf(item);
+let d = document.createElement('div');
+d.className = 'food-item';
+d.innerHTML = <span&gt;&lt;b&gt;${item.name}</b> (${item.cal} سعرة | بروتين: ${item.p || 0}غ)</span>; d.onclick = function() { selFoodIdx = originalIdx; document.getElementById('srch-food').value = item.name; lst.innerHTML =<div style="color:var(--green-in); font-weight:bold; padding:4px;">تم اختيار: ${item.name}&lt;/div>;
+};
+lst.appendChild(d);
+});
+}
+
+function filterFoodList() {
+let q = document.getElementById('srch-food').value.toLowerCase();
+renderFoodList(foodsDB.filter(x => x.name.toLowerCase().includes(q)));
+}
+
+function renderActivityList(list) {
+let lst = document.getElementById('act-list');
+if(!lst) return;
+lst.innerHTML = '';
+list.forEach((item, index) => {
+let originalIdx = activitiesDB.indexOf(item);
+let d = document.createElement('div');
+d.className = 'food-item';
+d.innerHTML = <span&gt;&lt;b&gt;${item.name}</b> (${item.rate} سعرة / دقيقة)&lt;/span>;
+d.onclick = function() {
+selActIdx = originalIdx;
+document.getElementById('srch-act').value = item.name;
+lst.innerHTML = <div style="color:var(--red-out); font-weight:bold; padding:4px;"&gt;تم اختيار النشاط: ${item.name}&lt;/div>;
+};
+lst.appendChild(d);
+});
+}
+
+function filterActivityList() {
+let q = document.getElementById('srch-act').value.toLowerCase();
+renderActivityList(activitiesDB.filter(x => x.name.toLowerCase().includes(q)));
+}
+
+function closeForm() {
+document.getElementById('form-modal').classList.remove('active');
+}
+</script>
+</body>
+</html>
